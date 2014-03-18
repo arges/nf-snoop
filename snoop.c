@@ -34,7 +34,7 @@ unsigned int snoop_out_hook( unsigned int hooknum, struct sk_buff *skb,
 	if (iph->saddr == iph->daddr) return NF_ACCEPT;
 
 	/* print packet information */
-	printk( "sent %p dev %s %pI4->%pI4\n", skb, in->name,
+	printk( "sent %p dev %s %pI4->%pI4\n", skb, out->name,
 		&(iph->saddr), &(iph->daddr));
 
 	return NF_ACCEPT;
@@ -43,6 +43,7 @@ unsigned int snoop_out_hook( unsigned int hooknum, struct sk_buff *skb,
 static int __init snoop_init(void)
 {
 	out_hook.hook = snoop_out_hook;
+	out_hook.hooknum = NF_INET_LOCAL_OUT;
 	out_hook.pf = PF_INET;
 	out_hook.priority = NF_IP_PRI_FIRST;
 	nf_register_hook(&out_hook);
