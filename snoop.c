@@ -18,14 +18,20 @@
 #define AUTHOR      "Chris J Arges <chris.j.arges@canonical.com>"
 #define LICENSE     "GPL"
 
-static struct nf_hook_ops out_hook;
+static struct nf_hook_ops hooks[NF_INET_NUMHOOKS];
+static char *nf_hook_names[NF_INET_NUMHOOKS] = {
+	"PRE_ROUTING ",
+	"LOCAL_IN    ",
+	"FORWARD     ",
+	"LOCAL_OUT   ",
+	"POST_ROUTING"
+};
 
-unsigned int snoop_out_hook( unsigned int hooknum, struct sk_buff *skb,
+unsigned int snoop_hook( unsigned int hooknum, struct sk_buff *skb,
         const struct net_device *in, const struct net_device *out,
         int(*okfn)( struct sk_buff * ) )
 {
 	struct iphdr *iph;
-
 	if (!skb) return NF_ACCEPT;
 	iph = ip_hdr(skb);
 	if (!iph) return NF_ACCEPT;
@@ -34,7 +40,7 @@ unsigned int snoop_out_hook( unsigned int hooknum, struct sk_buff *skb,
 	if (iph->saddr == iph->daddr) return NF_ACCEPT;
 
 	/* print packet information */
-	printk( "sent %p dev %s %pI4->%pI4\n", skb, out->name,
+	printk( "%s: packet %p dev %s %pI4->%pI4\n", nf_hook_names[hooknum], skb, out->name,
 		&(iph->saddr), &(iph->daddr));
 
 	return NF_ACCEPT;
@@ -42,18 +48,23 @@ unsigned int snoop_out_hook( unsigned int hooknum, struct sk_buff *skb,
 
 static int __init snoop_init(void)
 {
-	out_hook.hook = snoop_out_hook;
-	out_hook.hooknum = NF_INET_LOCAL_OUT;
-	out_hook.pf = PF_INET;
-	out_hook.priority = NF_IP_PRI_FIRST;
-	nf_register_hook(&out_hook);
-
+	int i;
+	for (i = 0; i < NF_INET_NUMHOOKS; i++) {
+		hooks[i].hook = snoop_hook;
+		hooks[i].pf = PF_INET;
+		hooks[i].hooknum = i;
+		hooks[i].priority = i;
+		nf_register_hook(&hooks[i]);
+	}
 	return 0;
 }
 
 static void __exit snoop_cleanup(void)
 {
-	nf_unregister_hook(&out_hook);
+	int i;
+	for (i = 0; i < NF_INET_NUMHOOKS; i++) {
+		nf_unregister_hook(&hooks[i]);
+	}
 }
 
 module_init(snoop_init);
