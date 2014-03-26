@@ -40,7 +40,7 @@ unsigned int snoop_hook( unsigned int hooknum, struct sk_buff *skb,
 	if (iph->saddr == iph->daddr) return NF_ACCEPT;
 
 	/* print packet information */
-	printk( "%s: packet %p dev %s %pI4->%pI4\n", nf_hook_names[hooknum], skb, out->name,
+	pr_debug( "%s: packet %p dev %s %pI4->%pI4\n", nf_hook_names[hooknum], skb, out->name,
 		&(iph->saddr), &(iph->daddr));
 
 	return NF_ACCEPT;
